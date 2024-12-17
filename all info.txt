@@ -1,0 +1,60 @@
+
+npm i passport passport-google-oauth20 express-session i installed
+npm i @reduxjs/toolkit react-redux axios react-router-dom
+
+aba sadcn ko lagi tailwind css ra sab configure garesi we create a file name
+
+jsconfig.json
+{
+    
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["./src/*"]
+      }
+    }
+  }
+  
+and in vite.config.jsconfigimport { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// Fix for __dirname in ESM  
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+})
+
+
+after that 
+npx shadcn@latest init
+
+shadcn@2.1.8
+Ok to proceed? (y) y
+
+✔ Preflight checks.
+✔ Verifying framework. Found Vite.
+✔ Validating Tailwind CSS.
+✔ Validating import alias.
+√ Which style would you like to use? » Default
+√ Which color would you like to use as the base color? » Slate
+√ Would you like to use CSS variables for theming? ... no / yes
+✔ Writing components.json.
+✔ Checking registry.
+✔ Updating tailwind.config.js
+✔ Updating src\index.css
+✔ Installing dependencies.
+✔ Created 1 file:
+  - src\lib\utils.js
+
+  ani aba frontend bhitra components bhanni folder banauni rah yo code halni
+  npx shadcn@latest add button
