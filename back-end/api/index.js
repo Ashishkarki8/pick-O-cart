@@ -1,9 +1,10 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { json } from "express"; //JSON is the function present in the "express" module and express is the obj which can use the module
+import express from "express"; //JSON is the function present in the "express" module and express is the obj which can use the module
 import appConfig from "./appConfig.js";
 import connectDb from "./connectDb.js";
 import corsOptions from "./corsConfig.js";
-import cookieParser from 'cookie-parser';
+import authRouter from './routes/auth/authRoutes.js';
 
 
 
@@ -19,5 +20,11 @@ app.use(cors(corsOptions))              //cors lai use gareko rah cors function 
 app.options('*', cors(corsOptions));   // Handle preflight requests globally
 app.use(cookieParser())
 app.use(express.json())               //express.json()  
+
+
+
+app.use("/api/auth/",authRouter)  // api/auth/register with post then register user
+
+
 connectDb()
 

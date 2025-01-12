@@ -58,3 +58,75 @@ Ok to proceed? (y) y
 
   ani aba frontend bhitra components bhanni folder banauni rah yo code halni
   npx shadcn@latest add button
+
+
+
+
+
+
+
+Yes, if your editor (like VSCode) is defaulting to CommonJS (require) imports when you press Ctrl + Space, you can configure it to use ES Modules (import/export) instead. Additionally, there are extensions and settings that can help enforce and fix import styles.
+
+Steps to Fix Automatic Imports in VSCode
+1. Ensure "type": "module" in package.json
+First, confirm that you have set "type": "module" in your package.json file to enable ES Modules:
+
+json
+Copy code
+{
+  "type": "module"
+}
+This tells Node.js and VSCode that your project uses ES Modules syntax.
+
+2. Check VSCode Settings
+VSCode uses TypeScript's IntelliSense for suggestions, so configure it to prefer ES Modules.
+
+Open Settings:
+
+Go to File > Preferences > Settings (or press Ctrl + ,).
+Search for Import Module:
+
+Look for a setting called javascript.preferences.importModuleSpecifier.
+Set it to non-relative or auto for clean, module-based imports.
+Example in settings.json:
+
+json
+Copy code
+"javascript.preferences.importModuleSpecifier": "non-relative",
+"typescript.preferences.importModuleSpecifier": "non-relative"
+Update Import Style: Ensure the following settings in settings.json:
+
+json
+Copy code
+"javascript.format.enable": true,
+"javascript.preferences.quoteStyle": "single",
+"javascript.preferences.importModuleSpecifierEnding": "auto"
+3. Extensions to Improve Imports
+Here are some useful VSCode extensions to help with ES Modules imports:
+
+ESLint
+Ensures consistent code style, including import statements.
+
+Automatically fixes require() to import using ESLint rules.
+
+Installation:
+
+Search for ESLint in the VSCode Extensions panel.
+Configuration: Add the following ESLint rule in your .eslintrc file:   @ext:dbaeumer.vscode-eslint
+
+json
+Copy code
+"rules": {
+  "no-restricted-syntax": ["error", "CallExpression[callee.name='require']"]
+}
+This will warn you if you use require() instead of import.
+
+Auto Import
+Automatically adds ES Module imports when you type a function or variable name.
+
+Installation:
+
+Search for Auto Import by Steoates in the Extensions pan
+
+
+

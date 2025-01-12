@@ -25,4 +25,4 @@ const corsOptions = {
     maxAge: 86400      // Cache preflight requests for 24 hours
 };
 
-export default corsOptions
+export default corsOptions 
