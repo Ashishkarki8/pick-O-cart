@@ -1,28 +1,86 @@
 import appConfig from "./appConfig.js";
 
+// Determine if the environment is development
+const isDevelopment = appConfig.nodeEnv === "development";
+
+// CORS options
 const corsOptions = {
     origin: (origin, callback) => {
         const allowedOrigins = [
-            appConfig.frontendURL, // Main front-end URL
-            'https://staging.example.com' // Test URL
+            appConfig.frontendURL,
+            "http://127.0.0.1:5173",
         ];
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true); // Allow the request
+
+        if (isDevelopment) {
+            // Allow requests with no origin (e.g., mobile apps, CLI tools)
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            // Check if the origin is allowed
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
         } else {
-            callback(new Error('Not allowed by CORS')); // Block the request
+            // In production, perform strict origin checking
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
         }
+
+        callback(new Error("Not allowed by CORS"));
     },
-    methods: ['POST', 'GET', 'DELETE', 'PATCH', 'PUT', 'OPTIONS'], // Allowed HTTP methods
+
+    // Allowed HTTP methods
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+
+    // Allowed headers
     allowedHeaders: [
-        "Content-Type",       // Specifies data format (JSON, etc.)
-        "Authorization",      // For secure login tokens
-        "Cache-Control",      // Controls caching behavior
-        "Expires",            // Caching header
-        "Pragma",             // Caching header
-        "X-Requested-With"    // AJAX requests
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "Cache-Control",
     ],
-    credentials: true, // Allow cookies or tokens
-    maxAge: 86400      // Cache preflight requests for 24 hours
+
+    // Exposed headers (accessible to client)
+    exposedHeaders: [
+        "Content-Length",
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+    ],
+
+    // Allow credentials (cookies, authorization headers)
+    credentials: true,
+
+    // Cache preflight requests
+    maxAge: isDevelopment ? 86400 : 7200, // 24 hours in dev, 2 hours in prod
+
+    // Additional security options
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
 };
 
-export default corsOptions 
+// Helper function to apply CORS and security headers
+export const applyCorsAndSecurity = (app) => {
+    app.use((req, res, next) => {
+        // Security headers
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("X-Frame-Options", "DENY");
+        res.setHeader("X-XSS-Protection", "1; mode=block");
+
+        if (!isDevelopment) {
+            res.setHeader(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains"
+            );
+        }
+
+        next();
+    });
+
+    return corsOptions;
+};
+
+export default corsOptions;

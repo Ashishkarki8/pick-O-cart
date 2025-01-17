@@ -30,6 +30,7 @@ const userSchema = Schema(
     password: {
       type: String,
       required: true,
+      select: false  // Prevent password from being returned in queries
     },
     role: {
       type: String,

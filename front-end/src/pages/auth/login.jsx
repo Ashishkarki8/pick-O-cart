@@ -3,11 +3,11 @@ import { loginFormControls } from "@/config";
 import { toast } from "@/hooks/use-toast";
 import { loginUser } from "@/store/auth-slice";
 import { useDispatch } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const AuthLogin = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const onSubmit = (data,event) => {
     event.preventDefault();
     dispatch(loginUser(data)).then((data) => {  //if fullfilled  if succes true then then runs and later its gets updated in  state.user = action.payload.user || null

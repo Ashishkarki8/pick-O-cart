@@ -14,7 +14,6 @@
 // export default connectDb;
 import mongoose from "mongoose";
 import appConfig from "./appConfig.js";
-
 const connectDb = async () => {
   try {
     await mongoose.connect(appConfig.mongoURL).then(()=>console.log("connected to db succesfully"));
