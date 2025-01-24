@@ -19,6 +19,8 @@ const appConfig = {
     jwtExpirationTime: process.env.JWT_EXPIRATION_TIME,
     nodeEnv: process.env.NODE_ENV,
     cookieDomain: process.env.COOKIE_DOMAIN,
+    refreshTokenSecretKey:process.env.REFRESH_TOKEN_SECRET,
+    refreshTokenExpirationTime:process.env.REFRESH_TOKEN_EXPIRY,
 };
 
 

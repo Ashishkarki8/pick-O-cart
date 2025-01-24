@@ -1,0 +1,302 @@
+import appConfig from "@/appConfig";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const AUTH_REGISTER = "/auth/register";
+const AUTH_LOGIN = "/auth/login";
+const AUTH_CHECK_TOKEN = "/auth/check-auth";
+
+
+// Utility function for consistent error parsing
+const parseApiError = (error) => ({
+  message: error.response?.data?.message || "An unexpected error occurred",
+  status: error.response?.status || 500,
+});
+
+// Initial state
+//the app treats the user as unauthenticated during the brief moment before checkAuth completes.
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,  // Start with true
+  error: null,
+  isInitialized: false  // Add this flag
+};
+
+export const registerUser = createAsyncThunk(AUTH_REGISTER, async (formData, { rejectWithValue }) => {
+  try {
+    const response = await axios.post(`${appConfig.frontendApiURL}/api/auth/register`, formData, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(parseApiError(error));
+  }
+});
+
+export const loginUser = createAsyncThunk(AUTH_LOGIN, async (formData, { rejectWithValue }) => {
+  try {
+    const response = await axios.post(`${appConfig.frontendApiURL}/api/auth/login`, formData, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(parseApiError(error));
+  }
+});
+
+export const checkAuth = createAsyncThunk(AUTH_CHECK_TOKEN, async (_, { rejectWithValue }) => {
+  try {
+    const response = await axios.get(`${appConfig.frontendApiURL}/api/auth/check-auth`, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    // Don't treat auth check failures as errors, just return null user
+    if (error.response?.status === 401) {
+      return { user: null };
+    }
+    return rejectWithValue(parseApiError(error));
+  }
+});
+
+
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState,
+  reducers: {
+    setUser: (state, action) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.isLoading = false;
+      state.isInitialized = true; // Add this
+      state.error = null; // Good practice to clear any errors
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(registerUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true; // Add this
+        state.user = action.payload.user || null;
+        state.isAuthenticated = true;
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload.message || "Registration failed.";
+      })
+      .addCase(loginUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true; // Add this
+        if (action.payload?.success) {
+          state.user = action.payload.user;
+          state.isAuthenticated = true;
+        } else {
+          state.error = action.payload?.message || "Login failed.";
+        }
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload.message || "Login failed.";
+      })
+      .addCase(checkAuth.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;  // Clear previous errors (from your version)
+      })
+      .addCase(checkAuth.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true;  // New flag for initialization
+        if (action.payload?.success) {  // Keep your success check
+          state.user = action.payload.user;
+          state.isAuthenticated = true;
+        } else {
+          state.user = null;
+          state.isAuthenticated = false;
+          state.error = action.payload?.message || "Authentication failed.";
+        }
+      })
+      .addCase(checkAuth.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true;  // New flag for initialization
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload?.message || "Authentication failed.";  // Keep your error message handling
+      })
+      
+  },
+});
+
+export const { setUser, clearError } = authSlice.actions;
+
+export default authSlice.reducer;
+
+
+
+
+
+
+
+
+import bcrypt from "bcryptjs";
+import { User } from "../../models/model.js";
+import userValidator from "../../validators/userValidator.js";
+import jwt from "jsonwebtoken";
+import appConfig from "../../appConfig.js";
+import loginValidator from "../../validators/loginValidator.js";
+
+export const registerUser = async (req, res) => {
+  try {
+    // Validate request body using Joi
+    const { error, value } = userValidator.validate(req.body, {
+      abortEarly: false, // Report all errors
+      stripUnknown: true, // Remove unknown fields
+    });
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        errors: error.details.map((detail) => ({
+          field: detail.path.join("."),
+          message: detail.message,
+        })),
+      });
+    }
+
+    const { userName, email, password } = value;
+
+    // Capitalize the first letter of the username after validation
+    const formattedUserName =
+      userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists.Please recheck your Email.",
+      });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create and save the new user with the properly formatted username
+    const newUser = new User({
+      userName: formattedUserName,
+      email,
+      password: hashedPassword,
+    });
+    let response = await newUser.save();
+
+    // Send successful response
+    res.status(200).json({
+      success: true,
+      message: "User registered successfully.",
+      data: response,
+    });
+  } catch (error) {
+    // Handle database or server error
+    if (error.code === 11000) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is already registered." });
+    }
+
+    console.error("Error during registration:", error.message);
+    res.status(500).json({ success: false, message: "Some error occurred." });
+  }
+};
+
+export const loginUser = async (req, res) => {
+  try {
+    const { error, value } = loginValidator.validate(req.body, {
+      abortEarly: false, // Report all errors
+      stripUnknown: true, // Remove unknown fields
+    });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        errors: error.details.map((detail) => ({
+          field: detail.path.join("."),
+          message: detail.message,
+        })),
+      });
+    }
+    const { email, password } = value;
+
+    // Validate that email and password are provided
+
+    // Find the user and include the password field
+    const checkUser = await User.findOne({ email }).select("+password");
+    console.log("Check User:", checkUser); // Log the entire user object
+
+    if (!checkUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User  doesn't exist! Please register first",
+      });
+    }
+
+    // Now checkUser .password should be defined
+    // console.log("Check User Password:", checkUser .password); // Log the password
+
+    const checkPasswordMatch = await bcrypt.compare(
+      password,
+      checkUser.password
+    );
+    if (!checkPasswordMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Incorrect password, please try again",
+      });
+    }
+
+    const jwtExpirationTimeInSeconds = parseInt(
+      process.env.JWT_EXPIRATION_TIME,
+      10
+    );
+    const token = jwt.sign(
+      { id: checkUser.id, role: checkUser.role },
+      appConfig.userSecretKey,
+      { subject: "accessApi", expiresIn: jwtExpirationTimeInSeconds }
+    );
+
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: appConfig.nodeEnv === "production",
+        sameSite: "lax",
+        maxAge: jwtExpirationTimeInSeconds * 1000,
+        path: "/",
+        domain: appConfig.cookieDomain || undefined,
+      })
+      .json({
+        success: true,
+        message: "Login successful",
+        user: {
+          // email: checkUser.email,
+          role: checkUser.role,
+          id: checkUser.id,
+        },
+      });
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).json({ success: false, message: "Some error occurred." });
+  }
+};

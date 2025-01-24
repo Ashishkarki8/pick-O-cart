@@ -1,14 +1,19 @@
 import { Router } from "express";
 import {
-  authMiddleware,
   loginUser,
   registerUser,
+  refreshAccessToken,
+  logoutUser
 } from "../../controllers/auth/authController.js";
+import { verifyRefreshToken } from "../../middleware/refreshTokenMiddleware.js";
+import { authMiddleware } from "../../middleware/authMiddleware.js";
 
 let authRouter = Router();
 
 authRouter.post("/register", registerUser); //  kunchain frontend ko child page bata data pathauni ho rah kun ,function ley db mah save garcha
 authRouter.post("/login", loginUser);
+authRouter.post("/refresh-token",verifyRefreshToken, refreshAccessToken);
+authRouter.post("/logout",authMiddleware, logoutUser);
 authRouter.get("/check-auth", authMiddleware, async (req, res) => {
   //auth midddler ley token chaki chaina check garcha rah cha bhaney token ko data lai get garera middleware next mah pathaucha
   try {
